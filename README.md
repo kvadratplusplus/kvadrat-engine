@@ -53,5 +53,5 @@ Single-file public domain (or MIT licensed) libraries for C/C++.\
 
 ## Links
 
-Youtube channel: <https://www.youtube.com/@kraskvad>
+Youtube channel: <https://www.youtube.com/@kraskvad>\
 Telegram channel: <https://t.me/krasnyykvadratdev>
