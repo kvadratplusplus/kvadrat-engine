@@ -1,0 +1,5 @@
+//DEPRECATED
+//USE glfuncs.h INSTEAD
+#pragma once
+
+//unsigned int shader_load_shader(char *file_name, int type);

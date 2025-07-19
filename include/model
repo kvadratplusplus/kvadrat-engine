@@ -1,0 +1,13 @@
+//DEPRECATED
+//USE glfuncs.h INSTEAD
+#pragma once
+
+#include <defines.h>
+
+void model_clean(Model *model);
+void model_draw(Model *model);
+void model_load_buffers(Model *model, float *vertex_array);
+void model_load_model(Model *model, char *model_name, float *vertex_array);
+void model_load_shaders(Model *model, char *vertex_shader_name, char *fragment_shader_name);
+void model_load_texture(Model *model, char *texture_name);
+int check_index(size_t * indeces, const size_t current, const size_t curr_shader_light);

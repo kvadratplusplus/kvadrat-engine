@@ -1,0 +1,274 @@
+//DEPRECATED
+//USE glfuncs.c INSTEAD
+#include <stdio.h>
+#include <stdint.h>
+#include <float.h>
+#include <string.h>
+
+#include <glad/glad.h>
+#include <stb_image.h>
+
+#include <defines.h>
+#include <shader.h>
+#include <kmatrix.h>
+#include <file.h>
+#include <klog.h>
+
+extern Camera main_camera;
+extern DirLight dir_light;
+extern Light * lights;
+extern char * cwd;
+extern Config main_config;
+
+void model_clean(Model * model)
+{
+    model->vertex_count = 0;
+    model->is_active = 0;
+
+    glDeleteVertexArrays(1, &model->vao);
+    model->vbo = 0;
+
+    glDeleteBuffers(1, &model->vbo);
+    model->vbo = 0;
+
+    glDeleteProgram(model->shader_program);
+    model->shader_program = 0;
+
+    glDeleteTextures(1, &model->texture);
+    model->texture = 0;
+}
+
+int check_index(size_t * indeces, const size_t current, const size_t curr_shader_light)
+{
+    for (size_t i = 0; i < curr_shader_light; i++)
+    {
+        if (indeces[i] == current)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void model_draw(Model * model)
+{
+    if(!model->is_active)
+    {
+        return;
+    }
+    
+    glUseProgram(model->shader_program);
+    glBindTexture(GL_TEXTURE_2D, model->texture);
+
+    //lights
+    int dir_light_ambient_color = glGetUniformLocation(model->shader_program, "dir_light.ambient_color");
+    glUniform3f(dir_light_ambient_color, dir_light.ambient_color.x, dir_light.ambient_color.y, dir_light.ambient_color.z);
+    
+    int dir_light_direction = glGetUniformLocation(model->shader_program, "dir_light.direction");
+    glUniform3f(dir_light_direction, dir_light.direction.x, dir_light.direction.y, dir_light.direction.z);
+
+    int dir_light_color = glGetUniformLocation(model->shader_program, "dir_light.color");
+    glUniform3f(dir_light_color, dir_light.color.x, dir_light.color.y, dir_light.color.z);
+
+    size_t nearest[main_config.shader_lights_count];    //indeces
+    float most_near_dist = FLT_MAX;    //last most nearest
+    kvec3 models_position =
+    {
+        model->model_matrix.x4,
+        model->model_matrix.y4,
+        model->model_matrix.z4
+    };
+
+    /*
+    printf("%f %f %f\n", model->model_matrix.x4,
+        model->model_matrix.y4,
+        model->model_matrix.z4);
+        */
+
+    for (size_t i = 0; i < main_config.shader_lights_count; i++)
+    {
+        most_near_dist = FLT_MAX;
+        for (size_t j = 0; j < main_config.lights_max; j++)
+        {
+            if (check_index(nearest, j, i) || !lights[j].is_active)
+            {
+                continue;
+            }
+
+            float dist = kvec_distance(&models_position, &lights[j].position);
+            if (most_near_dist > dist)
+            {
+                most_near_dist = dist;
+                nearest[i] = j;
+            }
+        }
+    }
+
+    char str[64];
+    for (size_t i = 0; i < main_config.shader_lights_count; i++)
+    {
+        sprintf(str, "lights[%zu].position", i);
+        int light_position = glGetUniformLocation(model->shader_program, str);
+        glUniform3f(light_position, lights[nearest[i]].position.x, lights[nearest[i]].position.y, lights[nearest[i]].position.z);
+
+        sprintf(str, "lights[%zu].color", i);
+        int light_color = glGetUniformLocation(model->shader_program, str);
+        glUniform3f(light_color, lights[nearest[i]].color.x, lights[nearest[i]].color.y, lights[nearest[i]].color.z);
+
+        sprintf(str, "lights[%zu].constant", i);
+        int light_constant = glGetUniformLocation(model->shader_program, str);
+        glUniform1f(light_constant, lights[nearest[i]].constant);
+
+        sprintf(str, "lights[%zu].linear", i);
+        int light_linear = glGetUniformLocation(model->shader_program, str);
+        glUniform1f(light_linear, lights[nearest[i]].linear);
+
+        sprintf(str, "lights[%zu].quadratic", i);
+        int light_quadratic = glGetUniformLocation(model->shader_program, str);
+        glUniform1f(light_quadratic, lights[nearest[i]].quadratic);
+    }
+
+    //matrices
+    GLuint model_matrix_location = glGetUniformLocation(model->shader_program, "model");
+    glUniformMatrix4fv(model_matrix_location, 1, GL_FALSE, &model->model_matrix.x1);
+
+    GLuint view_matrix_location = glGetUniformLocation(model->shader_program, "view");
+    glUniformMatrix4fv(view_matrix_location, 1, GL_FALSE, &main_camera.view_matrix.x1);
+
+    GLuint projection_matrix_location = glGetUniformLocation(model->shader_program, "projection");
+    glUniformMatrix4fv(projection_matrix_location, 1, GL_FALSE, &main_camera.projection_matrix.x1);
+
+    //draw
+    glBindVertexArray(model->vao);
+    glDrawArrays(GL_TRIANGLES, 0, model->vertex_count);
+
+    //not unbinding because we need speed
+    //glBindTexture(GL_TEXTURE_2D, 0);
+    //glBindVertexArray(0);
+    //glUseProgram(0);
+}
+
+
+void model_load_buffers(Model * model, float * vertex_array)
+{
+    model->model_matrix = kmat_identity();
+    glGenVertexArrays(1, &model->vao);
+    glGenBuffers(1, &model->vbo);
+    glBindVertexArray(model->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, model->vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * VERTICES_ATTRIBS * model->vertex_count, vertex_array, GL_STATIC_DRAW);
+
+    //position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, VERTICES_ATTRIBS * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(0);
+    //texture coord attribute
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, VERTICES_ATTRIBS * sizeof(float), (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    //normal vector attribute
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, VERTICES_ATTRIBS * sizeof(float), (void *)(5 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    //unbind
+    glBindBuffer(GL_ARRAY_BUFFER, 0); 
+    glBindVertexArray(0);
+}
+
+void model_load_model(Model * model, char * model_name, float * vertex_array)
+{
+    FILE * model_file = NULL;
+    if(!open_file(&model_file, model_name, "rb"))
+    {
+        log_log(LOG_WARNING, "Model file is not exist, loading missing model", NULL);
+        if(!open_file(&model_file, "models/missing.kmdl", "rb"))
+        {
+            log_log(LOG_ERROR, "Missing model is missing", NULL);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    fseek(model_file, 0, SEEK_END);
+    long elements_count = ftell(model_file) / sizeof(float);
+    rewind(model_file);
+
+    if (elements_count >= main_config.vertices_max * VERTICES_ATTRIBS - 1)
+    {
+        log_log
+        (
+            LOG_WARNING,
+            "Model \"%s\" has too many vertices (%ld / %zu)",
+            model_name,
+            elements_count / VERTICES_ATTRIBS,
+            main_config.vertices_max
+        );
+        elements_count = main_config.vertices_max * VERTICES_ATTRIBS - 1;
+    }
+
+    fread(vertex_array, sizeof(float), elements_count, model_file);
+    model->vertex_count = elements_count / VERTICES_ATTRIBS;
+}
+
+void model_load_shaders(Model * model, char * vertex_shader_name, char * fragment_shader_name)
+{
+    unsigned int vertex_shader = shader_load_shader(vertex_shader_name, GL_VERTEX_SHADER);
+    unsigned int fragment_shader = shader_load_shader(fragment_shader_name, GL_FRAGMENT_SHADER);
+
+    model->shader_program = glCreateProgram();
+    glAttachShader(model->shader_program, vertex_shader);
+    glAttachShader(model->shader_program, fragment_shader);
+    glLinkProgram(model->shader_program);
+
+    int success;
+    char infoLog[512];
+    glGetProgramiv(model->shader_program, GL_LINK_STATUS, &success);
+    if (!success)
+    {
+        glGetProgramInfoLog(model->shader_program, 512, NULL, infoLog);
+        log_log(LOG_ERROR, "GLSL Error: Shader program (\"%s\", \"%s\") compilation error:\n%s", vertex_shader_name, fragment_shader_name, infoLog);
+        exit(EXIT_FAILURE);
+    }
+
+    //delete shaders
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
+}
+
+void model_load_texture(Model * model, char * texture_name)
+{
+    int width;
+    int height;
+    int nrChannels;
+
+    char full_name[PATH_MAX];
+    real_path(texture_name, full_name);
+
+    uint8_t * data = stbi_load(full_name, &width, &height, &nrChannels, 0);
+    
+    glGenTextures(1, &model->texture);
+    glBindTexture(GL_TEXTURE_2D, model->texture);
+
+    //point filtering
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    if (!data)
+    {
+        //fprintf(stderr, TEXT_WARNING "Failed to load texture \"%s\", loading missing texture\n", texture_name);
+        log_log(LOG_WARNING, "Failed to load texture \"%s\", loading missing texture", texture_name);
+        data = stbi_load("textures/missing.png", &width, &height, &nrChannels, 0);
+        if (!data)
+        {
+            //fprintf(stderr, TEXT_ERROR "Missing texture is missing");
+            log_log(LOG_ERROR, "Missing texture is missing", NULL);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    //unbind
+    stbi_image_free(data);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}

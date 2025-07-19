@@ -1,0 +1,100 @@
+//DEPRECATED
+//USE glfuncs.c INSTEAD
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
+#include <glad/glad.h>
+
+#include <defines.h>
+#include <free_all.h>
+#include <file.h>
+#include <klog.h>
+
+extern Config main_config;
+
+unsigned int shader_load_shader(char *file_name, const int type)
+{
+    static uint8_t first_time = 1;
+    static char * shader_content;
+    if (first_time)
+    {
+        first_time = 0;
+        allocate_mem((void**)&shader_content, sizeof(char), main_config.shader_chars_max);
+    }
+
+    FILE * shader_file = NULL;
+    if(!open_file(&shader_file, file_name, "r"))
+    {
+        //fprintf(stderr, TEXT_WARNING "Shader file is not exist, loading missing shader\n");
+        log_log(LOG_WARNING, "Shader file \"%s\" is not exist, loading missing shader", file_name);
+        char missing_name[32];
+
+        if(type == GL_VERTEX_SHADER)
+        {
+            strcpy(missing_name, "shaders/missing.vert");
+        }
+
+        if(type == GL_FRAGMENT_SHADER)
+        {
+            strcpy(missing_name, "shaders/missing.frag");
+        }
+
+        if(!open_file(&shader_file, missing_name, "rb"))
+        {
+            //fprintf(stderr, TEXT_ERROR "Missing shader is missing\n");
+            log_log(LOG_ERROR, "Missing shader is missing", NULL);
+            exit(EXIT_FAILURE);
+        }
+    }
+    
+    fseek(shader_file, 0, SEEK_END);
+    long length = ftell(shader_file);
+    rewind(shader_file);
+    if (length >= main_config.shader_chars_max)
+    {
+        //fprintf(stderr, TEXT_ERROR "Shader file \"%s\" is too long (%ld / %zu)\n", file_name, length, main_config.shader_chars_max);
+        log_log(LOG_ERROR, "Shader file \"%s\" is too long (%ld / %zu)", file_name, length, main_config.shader_chars_max);
+        exit(EXIT_FAILURE);
+    }
+
+    else
+    {
+        fread(shader_content, sizeof(char), length, shader_file);
+    }
+
+    fclose(shader_file);
+    
+    const char * compile_shader_ptr = shader_content;
+    unsigned int shader = glCreateShader(type);
+    glShaderSource(shader, 1, &compile_shader_ptr, NULL);
+    glCompileShader(shader);
+
+    int success;
+    char infoLog[512];
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(shader, 512, NULL, infoLog);
+        log_log
+        (
+            LOG_ERROR,
+            "GLSL Error: %s shader (\"%s\") compilation error:\n%s",
+            type == GL_VERTEX_SHADER ? "Vertex" : "Fragment",
+            file_name,
+            infoLog
+        );
+        //free(shader_content);
+        exit(EXIT_FAILURE);
+    }
+    
+    //clear
+    for (size_t i = 0; i < main_config.shader_chars_max; i++)
+    {
+        shader_content[i] = '\0';
+    }
+    
+    return shader;
+}
+
