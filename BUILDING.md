@@ -22,6 +22,6 @@ Make: make from repo
 sudo pacman -S clang glfw make
 make linx11
 cd build
-./engine-linx11.exe
+./engine-linx11
 ```
 
