@@ -31,9 +31,12 @@ SOURCES := $(wildcard ./src/*.c)
 SOURCES += $(wildcard ./lib/kmatrix/src/*.c)
 SOURCES += ./lib/glad/src/glad.c
 
-.PHONY: all $(PLATFORMS)
+.PHONY: cpshd all $(PLATFORMS)
 
 all: $(PLATFORMS)
+
+cpshd:
+	cp ./shaders/* ./build/shaders/
 
 linx11: $(TARGET)-linx11
 
