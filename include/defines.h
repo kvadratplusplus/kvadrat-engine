@@ -20,15 +20,14 @@
 
 typedef struct
 {
-    size_t vertices_max;
-    size_t models_max;
-    size_t lights_max;
-    size_t sectors_max;
-    size_t shader_chars_max;
-    size_t shader_lights_count;
-    
-    int screen_width;
-    int screen_height;
+    uint32_t vertices_max;
+    uint32_t models_max;
+    uint32_t lights_max;
+    uint32_t sectors_max;
+    uint32_t shader_chars_max;
+    uint32_t shader_lights_count;
+    uint32_t screen_width;
+    uint32_t screen_height;
     
     uint8_t fullscreen;
     uint8_t log;
@@ -40,6 +39,7 @@ typedef struct
 {
     float time;
     float delta_time;
+
     float sin_time;
     float cos_time;
 } kTime;
@@ -68,6 +68,7 @@ typedef struct
 {
     kvec3 position;
     kvec3 color;
+
     float constant;
     float linear;
     float quadratic;
@@ -84,35 +85,23 @@ typedef struct
     float top;
     float bottom;
 
-    unsigned int vao;
-    unsigned int vbo;
-    unsigned int textures[6];
-    unsigned int shader_programs[6];
+    uint32_t vao;
+    uint32_t vbo;
+    uint32_t textures[6];
+    uint32_t shader_programs[6];
     
     uint8_t is_active;
 } Sector;
 
 typedef struct
 {
-    unsigned int vao;
-    unsigned int vbo;
-    unsigned int shader_program;
-    unsigned int vertex_count;
-    unsigned int texture;
     kmat4 model_matrix;
+
+    uint32_t vao;
+    uint32_t vbo;
+    uint32_t shader_program;
+    uint32_t vertex_count;
+    uint32_t texture;
+
     uint8_t is_active;
 } Model;
-
-/*
-typedef struct
-{
-    kvec2 start;
-    kvec2 end;
-    float top;
-    float bottom;
-
-    Model model;
-
-    //uint8_t is_active;
-} Wall;
-*/

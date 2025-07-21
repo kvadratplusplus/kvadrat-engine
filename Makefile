@@ -14,7 +14,7 @@ COMMON_CFLAGS := -Wall \
 
 TARGET := engine
 
-WORKSPACE_FOLDER := .
+. := .
 
 PLATFORMS := linx11 win
 
@@ -33,7 +33,11 @@ SOURCES += ./lib/glad/src/glad.c
 
 .PHONY: cpshd all $(PLATFORMS)
 
-all: $(PLATFORMS)
+all:
+	mkdir -p ./build
+	mkdir -p ./build/shaders
+	@echo "make win - windows"
+	@echo "make linx11 - linux x11"
 
 cpshd:
 	cp ./shaders/* ./build/shaders/
@@ -55,5 +59,3 @@ $(TARGET)-win: $(SOURCES)
 
 obj2kmdl:
 	$(CC) $(COMMON_CFLAGS) sdk/obj2kmdl.c -o ./build/models/$@
-
-
