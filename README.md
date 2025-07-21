@@ -28,6 +28,16 @@ For a more in-depth look at the engine architecture, check out the `docs/code` f
 * Level loading
 * and much more...
 
+## Why C?
+
+The engine follows three key principles: Speed, Stability, Simplicity.
+
+* C is a fast language.
+* C never does anything without your knowledge.
+* C is a simple language.
+
+For more information see CONTRIBUTING.md.
+
 ## Libraries
 
 ### GLFW
