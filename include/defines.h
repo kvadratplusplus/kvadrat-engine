@@ -32,6 +32,8 @@ typedef struct
     
     uint8_t fullscreen;
     uint8_t log;
+    uint8_t unlim;
+    uint8_t fps;
 } Config;
 
 typedef struct

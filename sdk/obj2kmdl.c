@@ -27,20 +27,23 @@ void panic(void)
 {
     if (input)
         fclose(input);
+
     if (output)
         fclose(output);
+
     if (vbuf)
         free(vbuf);
+
     if (vnbuf)
         free(vnbuf);
+
     if (vtbuf)
         free(vtbuf);
 }
 
 int main(int argc, char * argv[])
 {
-    if(argc != 4)
-    {
+    if(argc != 4) {
         printf(
             "Usage: obj2kmdl input_file output_file vertices\n"
             "input_file must be in .obj format\n"
@@ -53,24 +56,21 @@ int main(int argc, char * argv[])
     
     //.obj
     input = fopen(argv[1], "r");
-    if (!input)
-    {
+    if (!input) {
         fprintf(stderr, "Error: File \"%s\" is not exist\n", argv[1]);
         exit(EXIT_FAILURE);
     }
 
     //.kmdl
     output = fopen(argv[2], "wb");
-    if (!output)
-    {
+    if (!output) {
         fprintf(stderr, "Error: File \"%s\" is not exist\n", argv[2]);
         fclose(input);
         exit(EXIT_FAILURE);
     }
 
     size_t vertices_max;
-    if (sscanf(argv[3], "%zu", &vertices_max) == 0)
-    {
+    if (sscanf(argv[3], "%zu", &vertices_max) == 0) {
         fprintf(stderr, "Error: invalid vertices_max: \"%s\"\n", argv[3]);
         exit(EXIT_FAILURE);
     }
@@ -80,8 +80,7 @@ int main(int argc, char * argv[])
     vtbuf = (VT*)calloc(vertices_max, sizeof(VT));
     vnbuf = (VN*)calloc(vertices_max, sizeof(VN));
 
-    if (!vbuf || !vtbuf || !vnbuf)
-    {
+    if (!vbuf || !vtbuf || !vnbuf) {
         fprintf(stderr, "Error: Could not allocate memory\n");
         fclose(input);
         fclose(output);
@@ -95,64 +94,46 @@ int main(int argc, char * argv[])
     size_t vn_counter = 0;
     size_t f_counter = 0;
 
-    while (fgets(line, 260, input))
-    {
+    while (fgets(line, 260, input)) {
         //memory leak checkers
-        if (v_counter >= vertices_max)
-        {
+        if (v_counter >= vertices_max) {
             fprintf(stderr, "Error: Model contains too many vertices (%zu / %zu)\n",
                 v_counter, vertices_max);
             exit(EXIT_FAILURE);
         }
-
-        if(vt_counter >= vertices_max)
-        {
+        if(vt_counter >= vertices_max) {
             fprintf(stderr, "Error: Model contains too many texture coords (%zu / %zu)\n",
                 vt_counter, vertices_max);
             exit(EXIT_FAILURE);
         }
-
-        if(vn_counter >= vertices_max)
-        {
+        if(vn_counter >= vertices_max) {
             fprintf(stderr, "Error: Model contains too many vertex normals (%zu / %zu)\n",
                 vn_counter, vertices_max);
             exit(EXIT_FAILURE);
         }
-
         //parser
-        if(line[0] == 'v' && line[1] == ' ')
-        {
+        if(line[0] == 'v' && line[1] == ' ') {
             sscanf(&line[1], "%f %f %f", &x, &y, &z);
             vbuf[v_counter].x = x;
             vbuf[v_counter].y = y;
             vbuf[v_counter].z = z;
             v_counter++;
-        }
-
-        else if(line[0] == 'v' && line[1] == 't')
-        {
+        } else if(line[0] == 'v' && line[1] == 't') {
             sscanf(&line[2], "%f %f", &x, &y);
             vtbuf[vt_counter].x = x;
             vtbuf[vt_counter].y = y;
             vt_counter++;
-        }
-
-        else if(line[0] == 'v' && line[1] == 'n')
-        {
+        } else if(line[0] == 'v' && line[1] == 'n') {
             sscanf(&line[2], "%f %f %f", &x, &y, &z);
             vnbuf[vn_counter].x = x;
             vnbuf[vn_counter].y = y;
             vnbuf[vn_counter].z = z;
             vn_counter++;
-        }
-
-        else if(line[0] == 'f' && line[1] == ' ')
-        {
+        } else if(line[0] == 'f' && line[1] == ' ') {
             size_t v1, vt1, vn1;
             size_t v2, vt2, vn2;
             size_t v3, vt3, vn3;
-            sscanf
-            (
+            sscanf(
                 &line[1],
                 "%zu/%zu/%zu %zu/%zu/%zu %zu/%zu/%zu",
                 &v1, &vt1, &vn1, &v2, &vt2, &vn2, &v3, &vt3, &vn3
@@ -199,15 +180,10 @@ int main(int argc, char * argv[])
             fwrite(&vnbuf[vn3 - 1].z, sizeof(float), 1, output);
 
             f_counter++;
-        }
-
-        else
-        {
+        } else {
             continue;
         }
-
-        if(f_counter * 3 >= vertices_max)
-        {
+        if(f_counter * 3 >= vertices_max) {
             //this means that the engine will not be able to load the model properly
             fprintf(stderr, "Warning: Model has too many vertices (%zu / %zu)\n",
                 f_counter * 3, vertices_max);
@@ -215,7 +191,7 @@ int main(int argc, char * argv[])
         }
     }
 
-    //i think this is wrong
+    //I think this is wrong
     printf(
         "\n-------------------------------\n"
         "Stats:\n"

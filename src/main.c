@@ -87,7 +87,9 @@ int main(int argc, const char ** argv)
     glfwSetScrollCallback(window, scroll_callback);
 
     //options
-    glfwSwapInterval(0);
+    if (main_config.unlim)
+        glfwSwapInterval(0);
+
     stbi_set_flip_vertically_on_load(1);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glClearColor(0, 0, 0, 1.0f);
@@ -115,9 +117,9 @@ int main(int argc, const char ** argv)
         main_time.cos_time = cosf(main_time.time);
         last_frame = current_frame;
 
-        printf("%f\n", 1 / main_time.delta_time);
+        if (main_config.fps)
+            printf("%f\n", 1 / main_time.delta_time);
 
-        //Sector *p = sectors;
         for (size_t i = 0; i < main_config.sectors_max; i++) {
             if (sectors[i].is_active == 0)
                 continue;
