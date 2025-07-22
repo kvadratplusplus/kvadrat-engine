@@ -5,7 +5,7 @@
 #include <kmatrix.h>
 #include <defines.h>
 
-#define ENGINE_VERSION 1
+#define ENGINE_VERSION "v2"
 
 //pos(x,y,z),tex_coords(x,y),normal(x,y,z)
 #define VERTICES_ATTRIBS 8

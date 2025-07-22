@@ -86,23 +86,36 @@ int main(int argc, char * argv[])
         exit(EXIT_FAILURE);
     }
     if (info.compress != 0) {
-        fprintf(stderr, "Error: File \"%s\" has compression\n", argv[1]);
+        fprintf(stderr, "Error: File \"%s\" compression != 0\n", argv[1]);
         exit(EXIT_FAILURE);
     }
     if (info.bpp != 24) {
         fprintf(stderr, "Error: File \"%s\" bits/pixel != 24\n", argv[1]);
         exit(EXIT_FAILURE);
     }
-    fseek(input, head.offset, SEEK_SET);
+    /*
+    fseek(input, head.offset + info.height * (info.width - 1), SEEK_SET);
 
+    for (uint32_t i = 0; i < info.height - 1; i++) {
+        for (uint32_t j = 0; j < info.width - 1; j++) {
+            uint8_t data[3] = {0};
+            fread(data, 1, 3, input);
+            fwrite(data, 1, 3, output);
+            fseek(input, 1, SEEK_CUR);
+        }
+        fseek(input, head.offset + info.height * (info.width - 2 - i), SEEK_SET);
+    }
+    */
+
+    fseek(input, head.offset, SEEK_SET);
     for (uint32_t i = 0; i < info.width; i++) {
         for (uint32_t j = 0; j < info.width; j++) {
-            for (uint32_t k = 0; k < 3; k++) {
-                uint8_t rgb[3];
-                fread(rgb, 1, 3, input);
-                fwrite(rgb, 1, 3, output);
-                fseek(input, 1, SEEK_CUR);
-            }
+            uint8_t rgb[3];
+            fread(rgb, 1, 3, input);
+            uint8_t temp = rgb[2];
+            rgb[2] = rgb[0];
+            rgb[0] = temp;
+            fwrite(rgb, 1, 3, output);
         }
     }
 

@@ -39,13 +39,13 @@ void config_read(char * name)
     char word[32] = {0};
     while (fscanf(file, "%s", word) != EOF) {
         if (strcmp(word, "models_max") == 0)
-            fscanf(file, "%zu", &main_config.models_max);
+            fscanf(file, "%u", &main_config.models_max);
 
         else if (strcmp(word, "lights_max") == 0)
-            fscanf(file, "%zu", &main_config.lights_max);
+            fscanf(file, "%u", &main_config.lights_max);
 
         else if (strcmp(word, "vertices_max") == 0)
-            fscanf(file, "%zu", &main_config.vertices_max);
+            fscanf(file, "%u", &main_config.vertices_max);
 
         else if (strcmp(word, "fullscreen") == 0)
             fscanf(file, "%hhu", &main_config.fullscreen);
@@ -57,13 +57,13 @@ void config_read(char * name)
             fscanf(file, "%d", &main_config.screen_width);
 
         else if (strcmp(word, "shader_chars_max") == 0)
-            fscanf(file, "%zu", &main_config.shader_chars_max);
+            fscanf(file, "%u", &main_config.shader_chars_max);
 
         else if (strcmp(word, "shader_lights_count") == 0)
-            fscanf(file, "%zu", &main_config.shader_lights_count);
+            fscanf(file, "%u", &main_config.shader_lights_count);
 
         else if (strcmp(word, "sectors_max") == 0)
-            fscanf(file, "%zu", &main_config.sectors_max);
+            fscanf(file, "%u", &main_config.sectors_max);
 
         else
             log_log(LOG_WARNING, "Unknown config parameter \"%s\"", word);

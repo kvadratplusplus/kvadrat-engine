@@ -36,7 +36,7 @@ char * cwd;
 
 int main(int argc, const char ** argv)
 {
-    printf("Engine v%d\n", (int)ENGINE_VERSION);
+    printf("Engine "ENGINE_VERSION"\n");
     
     atexit(free_all_recources);
     

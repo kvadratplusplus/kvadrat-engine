@@ -341,14 +341,28 @@ GLuint glf_load_shader_program(char * vertex_shader_name, char * fragment_shader
 //returns texture object
 GLuint glf_load_texture(char * texture_name)
 {
-    int width;
-    int height;
-    int nrChannels;
-    GLuint texture_object;
-    char full_name[PATH_MAX];
+    static uint8_t * data = NULL;
+    static uint8_t first_time = 1;
+
+    int width = 64;
+    int height = 64;
+    //int nrChannels = 3;
+    GLuint texture_object = 0;
+    char full_name[PATH_MAX] = {0};
+    FILE * file = NULL;
+
+    if (first_time) {
+        allocate_mem((void**)&data, 1, 64 * 64 * 3 + 10);
+        first_time = 0;
+    }
 
     snprintf(full_name, PATH_MAX, "%s/%s", cwd, texture_name);
-    uint8_t * data = stbi_load(full_name, &width, &height, &nrChannels, 0);
+//    uint8_t * data = stbi_load(full_name, &width, &height, &nrChannels, 0);
+    if (!open_file(&file, full_name, "rb"))
+            ;       //TODO error handler
+
+    fread(data, 1, 64 * 64 * 3, file);
+    fclose(file);
 
     glGenTextures(1, &texture_object);
     glBindTexture(GL_TEXTURE_2D, texture_object);
@@ -359,21 +373,22 @@ GLuint glf_load_texture(char * texture_name)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
+    /*
     if (!data) {
         log_log(LOG_WARNING, "Failed to load texture \"%s\", loading missing texture", texture_name);
         char path[PATH_MAX + 1] = {0};
         snprintf(path, PATH_MAX, "%s/%s", cwd, "textures/missing.png");
 
-        data = stbi_load(path, &width, &height, &nrChannels, 0);
+ //       data = stbi_load(path, &width, &height, &nrChannels, 0);
         if (!data) {
             log_log(LOG_ERROR, "Missing texture is missing", NULL);
             exit(EXIT_FAILURE);
         }
     }
+    */
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
 
-    stbi_image_free(data);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     return texture_object;
