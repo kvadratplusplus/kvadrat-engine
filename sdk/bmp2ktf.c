@@ -18,47 +18,93 @@ struct bmp_info
     uint16_t planes;
     uint16_t bpp;       //bits per pixel
     uint32_t compress;
-    uint32_t img_size;
-    uint32_t xppm;       //pix/meter
+    uint32_t input_size;
+    uint32_t xppm;      //pix/meter
     uint32_t yppm;
     uint32_t col_used;
     uint32_t col_imp;
 };
 
-int main()
+static FILE * input = NULL;
+static FILE * output = NULL;
+
+void panic(void)
 {
+    if (input)
+        fclose(input);
+
+    if (output)
+        fclose(output);
+}
+
+int main(int argc, char * argv[])
+{
+    if (argc != 3) {
+        printf(
+            "Usage: bmp2ktf input_file output_file\n"
+            "input_file must be in .bmp format\n"
+            "output_file must be in .ktf format\n"
+        );
+        return 1;
+    }
+    atexit(panic);
+
     struct bmp_head head;
     struct bmp_info info;
-    FILE * img = fopen("img.bmp", "rb");
-    fread(&head.sign, 2, 1, img);
-    fread(&head.size, 4, 1, img);
-    fread(&head._reserved, 4, 1, img);
-    fread(&head.offset, 4, 1, img);
 
-    fread(&info.size, 4, 1, img);
-    fread(&info.width, 4, 1, img);
-    fread(&info.height, 4, 1, img);
-    fread(&info.planes, 2, 1, img);
-    fread(&info.bpp, 2, 1, img);
-    fread(&info.compress, 4, 1, img);
-    fread(&info.img_size, 4, 1, img);
-    fread(&info.xppm, 4, 1, img);
-    fread(&info.yppm, 4, 1, img);
-    fread(&info.col_used, 4, 1, img);
-    fread(&info.col_imp, 4, 1, img);
+    input = fopen(argv[1], "rb");
+    if (!input) {
+        fprintf(stderr, "Error: File \"%s\" does not exist\n", argv[1]);
+        exit(EXIT_FAILURE);
+    }
 
-    printf("%hu\n", head.sign);
-    printf("%lu %ld\n", head.size, head.size);
-    printf("%lu %hu\n", head.offset, head.offset);
-    printf("%lu %ld\n", info.size, info.size);
-    printf("%lu %ld\n", info.width, info.width);
-    printf("%lu %ld\n", info.height, info.height);
-    printf("%hu %hd\n", info.bpp, info.bpp);
-    printf("%lu %ld\n", info.compress, info.compress);
-    printf("%lu %ld\n", info.img_size, info.img_size);
-    printf("%lu %ld\n", info.xppm, info.height);
-    printf("%lu %ld\n", info.yppm, info.height);
-    printf("%lu %ld\n", info.col_used, info.height);
+    output = fopen(argv[2], "wb");
+    if (!output) {
+        fprintf(stderr, "Error: File \"%s\" does not exist\n", argv[2]);
+        exit(EXIT_FAILURE);
+    }
+
+    fread(&head.sign, 2, 1, input);
+    fread(&head.size, 4, 1, input);
+    fread(&head._reserved, 4, 1, input);
+    fread(&head.offset, 4, 1, input);
+
+    fread(&info.size, 4, 1, input);
+    fread(&info.width, 4, 1, input);
+    fread(&info.height, 4, 1, input);
+    fread(&info.planes, 2, 1, input);
+    fread(&info.bpp, 2, 1, input);
+    fread(&info.compress, 4, 1, input);
+    fread(&info.input_size, 4, 1, input);
+    fread(&info.xppm, 4, 1, input);
+    fread(&info.yppm, 4, 1, input);
+    fread(&info.col_used, 4, 1, input);
+    fread(&info.col_imp, 4, 1, input);
+
+    if (head.sign != 0x4d42) {
+        fprintf(stderr, "Error: File \"%s\" is not a .bmp file\n", argv[1]);
+        exit(EXIT_FAILURE);
+    }
+    if (info.compress != 0) {
+        fprintf(stderr, "Error: File \"%s\" has compression\n", argv[1]);
+        exit(EXIT_FAILURE);
+    }
+    if (info.bpp != 24) {
+        fprintf(stderr, "Error: File \"%s\" bits/pixel != 24\n", argv[1]);
+        exit(EXIT_FAILURE);
+    }
+    fseek(input, head.offset, SEEK_SET);
+
+    for (uint32_t i = 0; i < info.width; i++) {
+        for (uint32_t j = 0; j < info.width; j++) {
+            for (uint32_t k = 0; k < 3; k++) {
+                uint8_t rgb[3];
+                fread(rgb, 1, 3, input);
+                fwrite(rgb, 1, 3, output);
+                fseek(input, 1, SEEK_CUR);
+            }
+        }
+    }
 
     return 0;
 }

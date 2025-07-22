@@ -57,14 +57,14 @@ int main(int argc, char * argv[])
     //.obj
     input = fopen(argv[1], "r");
     if (!input) {
-        fprintf(stderr, "Error: File \"%s\" is not exist\n", argv[1]);
+        fprintf(stderr, "Error: File \"%s\" does not exist\n", argv[1]);
         exit(EXIT_FAILURE);
     }
 
     //.kmdl
     output = fopen(argv[2], "wb");
     if (!output) {
-        fprintf(stderr, "Error: File \"%s\" is not exist\n", argv[2]);
+        fprintf(stderr, "Error: File \"%s\" does not exist\n", argv[2]);
         fclose(input);
         exit(EXIT_FAILURE);
     }
