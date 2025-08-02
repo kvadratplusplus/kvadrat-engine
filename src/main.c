@@ -14,6 +14,7 @@
 #endif
 
 #include <memory_man.h>
+#include <buffers.h>
 #include <defines.h>
 #include <input.h>
 #include <camera.h>
@@ -34,20 +35,23 @@ Sector * sectors;
 Model * models;
 char * cwd;
 
+void extract_directory(const char* full_path, char* dir_buffer, size_t buf_size);
+
 int main(int argc, const char ** argv)
 {
     printf("Engine "ENGINE_VERSION"\n");
     
     atexit(free_all_recources);
-    
+    atexit(bufs_clean);
+    atexit(bufs_destroy);
+
     allocate_mem((void**)&cwd, sizeof(char), PATH_MAX + 1);
     extract_directory(argv[0], cwd, PATH_MAX);
 
     config_read("config.cfg");
     config_read_args(argv, argc);
-    read_bindings("binds.txt");     //TODO move to player_init
     
-    //opengl 3.3
+    //TODO move windwow creation to window.c
     if (!glfwInit()) {
         log_log(LOG_ERROR, "Failed to initialize GLFW\n", NULL);
         exit(EXIT_FAILURE);
@@ -73,13 +77,12 @@ int main(int argc, const char ** argv)
         log_log(LOG_ERROR, "Failed to create window", NULL);
         exit(EXIT_FAILURE);
     }
-
     glfwMakeContextCurrent(window);
-
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         log_log(LOG_ERROR, "Failed to initialize GLAD", NULL);
         exit(EXIT_FAILURE);
     }
+    
     //callbacks
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetKeyCallback(window, key_callback);
@@ -96,13 +99,10 @@ int main(int argc, const char ** argv)
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-    glf_precompile_missing();
     framebuffer_size_callback(window, main_config.screen_width, main_config.screen_height);
-    camera_init(&main_camera);
-    
-    allocate_mem((void**)&lights, sizeof(Light), main_config.lights_max);
-    allocate_mem((void**)&sectors, sizeof(Sector), main_config.sectors_max);
-    allocate_mem((void**)&models, sizeof(Model), main_config.models_max);
+    camera_init(&main_camera);      //TODO move to player_init
+    bufs_init();
+    read_bindings("binds.txt");     //TODO move to player_init
 
     scene_load_scene("scenes/example.ksc");
 
@@ -133,7 +133,6 @@ int main(int argc, const char ** argv)
             size_t indeces[main_config.shader_lights_count];
             kvec3 pos = {models[i].model_matrix.x4, models[i].model_matrix.y4,
                 models[i].model_matrix.z4};
-
             glf_find_nearest_lights(&pos, indeces);
             glf_load_light_pos(indeces, models[i].shader_program);
             glf_draw(models[i].shader_program, models[i].texture,
@@ -145,4 +144,27 @@ int main(int argc, const char ** argv)
         glfwPollEvents();
     }
     exit(EXIT_SUCCESS);
+}
+
+void extract_directory(const char* full_path, char* dir_buffer, size_t buf_size)
+{
+    char * last_separator = strrchr(full_path, '/');
+
+    if (last_separator == NULL)
+        last_separator = strrchr(full_path, '\\');
+
+    if (last_separator == NULL || last_separator == full_path) {
+        //this is only possible on UNIX-like systems
+        memcpy(dir_buffer, "/", 2);
+    } else {
+        //this is only possible on Windows
+        size_t len_to_copy = last_separator - full_path;
+
+        if (len_to_copy > buf_size - 1) {
+            log_log(LOG_ERROR, "Buffer is too small", NULL);
+            exit(EXIT_FAILURE);
+        }
+        memcpy(dir_buffer, full_path, len_to_copy);
+        dir_buffer[len_to_copy] = '\0';
+    }
 }

@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include <defines.h>
+#include <buffers.h>
 #include <kmatrix.h>
 #include <sector.h>
 #include <glfuncs.h>
@@ -11,18 +12,16 @@ extern Config main_config;
 void sector_draw(Sector * sector)
 {
     size_t indeces[main_config.shader_lights_count];
+    size_t start = 12;
+    size_t end = 15;
+
     kmat4 matrix = kmat_identity();
-
     glf_find_nearest_lights(&sector->center, indeces);
-
     glf_load_light_pos(indeces, sector->shader_programs[0]);
     glf_draw(sector->shader_programs[0], sector->textures[0], sector->vao, &matrix, 0, 6);
-
     glf_load_light_pos(indeces, sector->shader_programs[1]);
     glf_draw(sector->shader_programs[1], sector->textures[1], sector->vao, &matrix, 6, 12);
 
-    size_t start = 12;
-    size_t end = 15;
     for (size_t i = 0; i < 4; i++) {
         const uint8_t portal = sector->portal[i];
 
@@ -50,7 +49,10 @@ void sector_draw(Sector * sector)
 
 void sector_create(SectorLayout * layout, Sector * sector)
 {
+    float vertices[triangles * 3 * VERTICES_ATTRIBS];
     size_t triangles = 4;
+    float center_x = 0;
+    float center_z = 0;
 
     memcpy(sector->portal, layout->portal, sizeof(uint8_t) * 4);
     for (size_t i = 0; i < 4; i++) {
@@ -68,9 +70,6 @@ void sector_create(SectorLayout * layout, Sector * sector)
             continue;
         }
     }
-
-    float center_x = 0;
-    float center_z = 0;
     for (size_t i = 0; i < 4; i++) {
         center_x += layout->points[i].x;
         center_z += layout->points[i].y;
@@ -78,8 +77,6 @@ void sector_create(SectorLayout * layout, Sector * sector)
     sector->center.x = center_x / 4;
     sector->center.y = (layout->top + layout->bottom) / 2;
     sector->center.z = center_z / 4;
-
-    float vertices[triangles * 3 * VERTICES_ATTRIBS];
 
     //floor
     //(n_triang * points_in_triang + n_point) * attribs + n_attrib
@@ -121,15 +118,16 @@ void sector_create(SectorLayout * layout, Sector * sector)
     vertices[(1 * 3 + 2) * 8 + 4] = (layout->points[3].y - layout->points[0].y) / layout->tex_coords[0].y;
 
     kvec3 floor_normal = {0, 1, 0};
-    for (size_t i = 0; i < 2; i++)
+    for (size_t i = 0; i < 2; i++) {
         for (size_t j = 0; j < 3; j++) {
             vertices[(i * 3 + j) * VERTICES_ATTRIBS + 5] = floor_normal.x;
             vertices[(i * 3 + j) * VERTICES_ATTRIBS + 6] = floor_normal.y;
             vertices[(i * 3 + j) * VERTICES_ATTRIBS + 7] = floor_normal.z;
         }
+    }
 
-    sector->shader_programs[0] = glf_load_shader_program(layout->vertex_shader_names[0], layout->fragment_shader_names[0]);
-    sector->textures[0] = glf_load_texture(layout->texture_names[0]);
+    sector->shader_programs[0] = bufs_prog(layout->vertex_shader_names[0], layout->fragment_shader_names[0]);
+    sector->textures[0] = bufs_tex(layout->texture_names[0]);
 
     vertices[(2 * 3 + 0) * 8 + 0] = layout->points[2].x;
     vertices[(2 * 3 + 0) * 8 + 1] = layout->top;
@@ -168,15 +166,16 @@ void sector_create(SectorLayout * layout, Sector * sector)
     vertices[(3 * 3 + 2) * 8 + 4] = 0;
     
     kvec3 ceil_normal = {0, -1, 0};
-    for (size_t i = 2; i < 4; i++)
+    for (size_t i = 2; i < 4; i++) {
         for (size_t j = 0; j < 3; j++) {
             vertices[(i * 3 + j) * VERTICES_ATTRIBS + 5] = ceil_normal.x;
             vertices[(i * 3 + j) * VERTICES_ATTRIBS + 6] = ceil_normal.y;
             vertices[(i * 3 + j) * VERTICES_ATTRIBS + 7] = ceil_normal.z;
         }
+    }
 
-    sector->shader_programs[1] = glf_load_shader_program(layout->vertex_shader_names[1], layout->fragment_shader_names[1]);
-    sector->textures[1] = glf_load_texture(layout->texture_names[1]);
+    sector->shader_programs[1] = bufs_prog(layout->vertex_shader_names[1], layout->fragment_shader_names[1]);
+    sector->textures[1] = bufs_tex(layout->texture_names[1]);
 
     //walls
     for (size_t i = 0, j = 4; i < 4; i++) {
@@ -366,8 +365,8 @@ void sector_create(SectorLayout * layout, Sector * sector)
                 j++;
             }
         }
-        sector->shader_programs[i + 2] = glf_load_shader_program(&layout->vertex_shader_names[i + 2][0], &layout->fragment_shader_names[i + 2][0]);
-        sector->textures[i + 2] = glf_load_texture(layout->texture_names[i + 2]);
+        sector->shader_programs[i + 2] = bufs_prog(&layout->vertex_shader_names[i + 2][0], &layout->fragment_shader_names[i + 2][0]);
+        sector->textures[i + 2] = bufs_tex(layout->texture_names[i + 2]);
     }
     glf_load_buffers(&sector->vao, &sector->vbo, triangles * 3, vertices);
 }

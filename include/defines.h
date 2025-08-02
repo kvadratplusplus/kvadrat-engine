@@ -28,6 +28,10 @@ typedef struct
     uint32_t shader_lights_count;
     uint32_t screen_width;
     uint32_t screen_height;
+    uint32_t texsize_max;
+    uint32_t buf_prog;
+    uint32_t buf_tex;
+    uint32_t buf_vbo;
     
     uint8_t fullscreen;
     uint8_t log;

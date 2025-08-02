@@ -62,7 +62,6 @@ void log_log_(enum log_type type, const char function_name[], const char* format
             local_time->tm_min,
             local_time->tm_sec
         );
-
         if (type == LOG_ERROR)
             fprintf(log_file, "ERR: ");
 

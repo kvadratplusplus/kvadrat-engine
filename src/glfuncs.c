@@ -24,102 +24,6 @@ extern Camera main_camera;
 extern char * cwd;
 extern DirLight dir_light;
 
-//precompiled missing shaders
-static GLuint missing_vs;
-static GLuint missing_fs;
-static GLuint missing_sp;
-
-/*
-void glf_init(void)
-{
-    glf_precompile_missing();
-}
-    */
-
-//this function should only be called when the engine is started
-void glf_precompile_missing(void)
-{
-    GLchar *buf = NULL;
-    FILE *vs_file = NULL;
-    FILE *fs_file = NULL;
-    GLuint vs_shader = 0;
-    GLuint fs_shader = 0;
-    GLuint shader_program = 0;
-
-    allocate_mem((void**)&buf, sizeof(GLchar), 1024);
-
-    if (!open_file(&vs_file, "shaders/missing.vert", "r")) {
-        log_log(LOG_ERROR, "Shader file \"shaders/missing.vert\" does not exist", NULL);
-        exit(EXIT_FAILURE);
-    }
-    fread(buf, sizeof(GLchar), 1024, vs_file);
-    fclose(vs_file);
-    buf[1023] = '\0';
-
-    vs_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vs_shader, 1, (const GLchar *const *)&buf, NULL);
-    glCompileShader(vs_shader);
-
-    int success;
-    char log[512];
-    glGetShaderiv(vs_shader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(vs_shader, 512, NULL, log);
-        log_log(
-            LOG_ERROR,
-            "GLSL Error: Vertex shader \"shaders/missing.vert\" compilation error:\n%s",
-            log
-        );
-        exit(EXIT_FAILURE);
-    }
-    for (size_t i = 0; i < 1024; i++)
-        buf[i] = '\0';
-
-    if (!open_file(&fs_file, "shaders/missing.frag", "r")) {
-        log_log(LOG_ERROR, "Shader file \"shaders/missing.frag\" does not exist", NULL);
-        exit(EXIT_FAILURE);
-    }
-    fread(buf, sizeof(GLchar), 1024, fs_file);
-    fclose(fs_file);
-    buf[1023] = '\0';
-
-    fs_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fs_shader, 1, (const GLchar *const *)&buf, NULL);
-    glCompileShader(fs_shader);
-
-    glGetShaderiv(fs_shader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(fs_shader, 512, NULL, log);
-        log_log(
-            LOG_ERROR,
-            "GLSL Error: Fragment shader \"shaders/missing.frag\" compilation error:\n%s",
-            log
-        );
-        exit(EXIT_FAILURE);
-    }
-    shader_program = glCreateProgram();
-    glAttachShader(shader_program, vs_shader);
-    glAttachShader(shader_program, fs_shader);
-    glLinkProgram(shader_program);
-
-    glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shader_program, 512, NULL, log);
-        log_log(LOG_ERROR, "GLSL Error: Shader program (VS: \"shaders/missing.vert\", FS: \"shaders/missing.frag\") compilation error:\n%s", log);
-        exit(EXIT_FAILURE);
-    }
-    missing_vs = vs_shader;
-    missing_fs = fs_shader;
-    missing_sp = shader_program;
-}
-
-void glf_clear_missing(void)
-{
-    glDeleteShader(missing_vs);
-    glDeleteShader(missing_fs);
-    glDeleteProgram(missing_sp);
-}
-
 static inline int check_index(size_t * indeces, const size_t current, const size_t curr_shader_light)
 {
     for (size_t i = 0; i < curr_shader_light; i++)
@@ -149,6 +53,7 @@ void glf_find_nearest_lights(kvec3 * position, size_t * buffer)
     }
 }
 
+//TODO move to scene.c
 void glf_load_light_pos(size_t * buffer, GLuint shader_program)
 {
     glUseProgram(shader_program);
@@ -191,8 +96,10 @@ void glf_draw(GLuint shader_program, GLuint texture,
 
     glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"),
         1, GL_FALSE, &model_matrix->x1);
+
     glUniformMatrix4fv(glGetUniformLocation(shader_program, "view"),
         1, GL_FALSE, &main_camera.view_matrix.x1);
+
     glUniformMatrix4fv(glGetUniformLocation(shader_program, "projection"),
         1, GL_FALSE, &main_camera.projection_matrix.x1);
 
@@ -204,81 +111,42 @@ void glf_draw(GLuint shader_program, GLuint texture,
     glBindVertexArray(0);
 }
 
-void glf_load_buffers(GLuint * vao, GLuint * vbo,
-    size_t vertex_count, float * vertex_array)
+void glf_load_buffers(GLuint * vao, GLuint * vbo, size_t vertex_count, float * vertex_array)
 {
     glGenVertexArrays(1, vao);
     glGenBuffers(1, vbo);
     glBindVertexArray(*vao);
     glBindBuffer(GL_ARRAY_BUFFER, *vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * VERTICES_ATTRIBS * vertex_count,
-    vertex_array, GL_STATIC_DRAW);
+        vertex_array, GL_STATIC_DRAW);
 
     //position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, VERTICES_ATTRIBS * sizeof(float),
-    (void *)0);
+        (void *)0);
+
     glEnableVertexAttribArray(0);
+
     //texture coord attribute
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, VERTICES_ATTRIBS * sizeof(float),
-    (void *)(3 * sizeof(float)));
+        (void *)(3 * sizeof(float)));
+
     glEnableVertexAttribArray(1);
+
     //normal vector attribute
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, VERTICES_ATTRIBS * sizeof(float),
-    (void *)(5 * sizeof(float)));
+        (void *)(5 * sizeof(float)));
+
     glEnableVertexAttribArray(2);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 }
 
-//returns shader object
 //type = GL_VERTEX_SHADER or GL_FRAGMENT_SHADER
-GLuint glf_load_shader(char *file_name, const int type)
+GLuint glf_load_shader(char * content, const int type)
 {
-    static uint8_t first_time = 1;
-    static char * shader_content;
-    if (first_time) {
-        first_time = 0;
-        allocate_mem((void**)&shader_content, sizeof(char), main_config.shader_chars_max);
-    }
-    FILE * shader_file = NULL;
-    if (!open_file(&shader_file, file_name, "r")) {
-        log_log(LOG_WARNING, "Shader file \"%s\" does not exist, loading missing shader", file_name);
-        // char missing_name[32];
-
-        // if (type == GL_VERTEX_SHADER)
-        //     strcpy(missing_name, "shaders/missing.vert");
-
-        // if (type == GL_FRAGMENT_SHADER)
-        //     strcpy(missing_name, "shaders/missing.frag");
-
-        // if (!open_file(&shader_file, missing_name, "r")) {
-        //     log_log(LOG_ERROR, "Missing shader is missing", NULL);
-        //     exit(EXIT_FAILURE);
-        // }
-        return type == GL_VERTEX_SHADER ? missing_vs : missing_fs;
-    }
-    fseek(shader_file, 0, SEEK_END);
-    long length = ftell(shader_file);
-    rewind(shader_file);
-
-    if (length > main_config.shader_chars_max - 1) {
-        log_log(LOG_ERROR, "Shader file \"%s\" is too long (%lld / %zu)",
-            file_name, length, main_config.shader_chars_max);
-        fclose(shader_file);
-        exit(EXIT_FAILURE);
-    } else {
-        if (fread(shader_content, sizeof(char), length, shader_file) != length) {
-            log_log(LOG_ERROR, "Failed to read file \"%s\"", file_name);
-            fclose(shader_file);
-            exit(EXIT_FAILURE);
-        }
-        shader_content[length] = '\0';
-    }
-    fclose(shader_file);
-
     GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, (const GLchar *const *)&shader_content, NULL);
+    glShaderSource(shader, 1, (const GLchar *const *)&content, NULL);
     glCompileShader(shader);
 
     int success;
@@ -288,108 +156,53 @@ GLuint glf_load_shader(char *file_name, const int type)
         glGetShaderInfoLog(shader, 512, NULL, log);
         log_log(
             LOG_ERROR,
-            "GLSL Error: %s shader \"%s\" compilation error:\n%s",
+            "GLSL Error: %s shader compilation error:\n%s",
             type == GL_VERTEX_SHADER ? "Vertex" : "Fragment",
-            file_name,
             log
         );
-        exit(EXIT_FAILURE);
+        return 0;       //fail
     }
-    return shader;
+    return shader;      //success
 }
 
-//returns shader program
-GLuint glf_load_shader_program(char * vertex_shader_name, char * fragment_shader_name)
+GLuint glf_load_shader_program(GLuint vert, GLuint frag)
 {
-    GLuint vertex_shader =
-        strcmp(vertex_shader_name, "shaders/missing.vert") == 0 ?
-        missing_vs :
-        glf_load_shader(vertex_shader_name, GL_VERTEX_SHADER);
-    GLuint fragment_shader =
-        strcmp(fragment_shader_name, "shaders/missing.frag") == 0 ?
-        missing_fs :
-        glf_load_shader(fragment_shader_name, GL_FRAGMENT_SHADER);
-
-    if (vertex_shader == missing_vs && fragment_shader == missing_fs)
-        return missing_sp;
-
-    GLuint shader_program = glCreateProgram();
-    glAttachShader(shader_program, vertex_shader);
-    glAttachShader(shader_program, fragment_shader);
-    glLinkProgram(shader_program);
+    GLuint prog = glCreateProgram();
+    glAttachShader(prog, vert);
+    glAttachShader(prog, frag);
+    glLinkProgram(prog);
 
     int success;
     char log[512];
-    glGetProgramiv(shader_program, GL_LINK_STATUS, &success);
+    glGetProgramiv(prog, GL_LINK_STATUS, &success);
     if (!success) {
-        glGetProgramInfoLog(shader_program, 512, NULL, log);
-        log_log(LOG_ERROR, "GLSL Error: Shader program (VS: \"%s\", FS: \"%s\") compilation error:\n%s",
-            vertex_shader_name, fragment_shader_name, log);
-        exit(EXIT_FAILURE);
+        glGetProgramInfoLog(prog, 512, NULL, log);
+        log_log(
+            LOG_ERROR,
+            "GLSL Error: Shader program (VS: \"%s\", FS: \"%s\") compilation error:\n%s",
+            vert, frag, log
+        );
+        return 0;       //fail
     }
-    //delete shaders
-    if (vertex_shader != missing_vs)
-        glDeleteShader(vertex_shader);
-
-    if (fragment_shader != missing_fs)
-        glDeleteShader(fragment_shader);
-
-    return shader_program;
+    return prog;        //success
 }
 
-//TODO .ktf support, split to load_tex (fileman.c) and glf_load_tex
-//returns texture object
-GLuint glf_load_texture(char * texture_name)
+GLuint glf_load_tex(uint8_t * data, uint32_t width, uint32_t height)
 {
-    static uint8_t * data = NULL;
-    static uint8_t first_time = 1;
+    GLuint texture = 0;
 
-    int width = 64;
-    int height = 64;
-    //int nrChannels = 3;
-    GLuint texture_object = 0;
-    char full_name[PATH_MAX] = {0};
-    FILE * file = NULL;
-
-    if (first_time) {
-        allocate_mem((void**)&data, 1, 64 * 64 * 3 + 10);
-        first_time = 0;
-    }
-
-    snprintf(full_name, PATH_MAX, "%s/%s", cwd, texture_name);
-//    uint8_t * data = stbi_load(full_name, &width, &height, &nrChannels, 0);
-    if (!open_file(&file, full_name, "rb"))
-            ;       //TODO error handler
-
-    fread(data, 1, 64 * 64 * 3, file);
-    fclose(file);
-
-    glGenTextures(1, &texture_object);
-    glBindTexture(GL_TEXTURE_2D, texture_object);
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
 
     //point filtering
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    /*
-    if (!data) {
-        log_log(LOG_WARNING, "Failed to load texture \"%s\", loading missing texture", texture_name);
-        char path[PATH_MAX + 1] = {0};
-        snprintf(path, PATH_MAX, "%s/%s", cwd, "textures/missing.png");
-
- //       data = stbi_load(path, &width, &height, &nrChannels, 0);
-        if (!data) {
-            log_log(LOG_ERROR, "Missing texture is missing", NULL);
-            exit(EXIT_FAILURE);
-        }
-    }
-    */
+    
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
 
     glBindTexture(GL_TEXTURE_2D, 0);
-
-    return texture_object;
+    return texture;      //success
 }

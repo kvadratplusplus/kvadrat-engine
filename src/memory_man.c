@@ -20,18 +20,18 @@ static inline void free_at_exit(void * ptr)
     pointers[stack_top++] = ptr;
 }
 
-//allocate_mem((void**)&ptr, sizeof(type), TYPES_MAX);
 void allocate_mem(void ** ptr, size_t size, size_t number)
 {
     *ptr = calloc(number, size);
     if (*ptr == NULL) {
-        log_log(LOG_ERROR, "Failed to allocate memory (%zu bytes, %f kb)", size * number, (float)(size * number) / 1024);
+        log_log(LOG_ERROR, "Failed to allocate memory (%zu bytes, %f kb)",
+            size * number, (float)(size * number) / 1024);
         exit(EXIT_FAILURE);
     }
     free_at_exit(*ptr);
 }
 
-//registered in atexit()
+//atexit()
 void free_all_recources(void)
 {
     for (size_t i = 0; i < POINTERS_MAX; i++)

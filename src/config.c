@@ -32,11 +32,12 @@ void config_read_args(const char ** argv, int argc)
 void config_read(char * name)
 {
     FILE * file = NULL;
+    char word[32] = {0};
+
     if(!open_file(&file, name, "r")) {
         log_log(LOG_ERROR, "Config file does not exist", NULL);
         exit(EXIT_FAILURE);
     }
-    char word[32] = {0};
     while (fscanf(file, "%s", word) != EOF) {
         if (strcmp(word, "models_max") == 0)
             fscanf(file, "%u", &main_config.models_max);
@@ -65,10 +66,23 @@ void config_read(char * name)
         else if (strcmp(word, "sectors_max") == 0)
             fscanf(file, "%u", &main_config.sectors_max);
 
+        else if (strcmp(word, "texsize_max") == 0)
+            fscanf(file, "%u", &main_config.texsize_max);
+
+        else if (strcmp(word, "buf_prog") == 0)
+            fscanf(file, "%u", &main_config.buf_prog);
+
+        else if (strcmp(word, "buf_tex") == 0)
+            fscanf(file, "%u", &main_config.buf_tex);
+
+        else if (strcmp(word, "buf_vbo") == 0)
+            fscanf(file, "%u", &main_config.buf_vbo);
+
         else
             log_log(LOG_WARNING, "Unknown config parameter \"%s\"", word);
 
     }
+    fclose(file);
     if (main_config.models_max == 0) {
         log_log(LOG_WARNING, "models_max = 0, setting to 128", NULL);
         main_config.models_max = 128;
@@ -82,11 +96,11 @@ void config_read(char * name)
         main_config.vertices_max = 128;
     }
     if (main_config.screen_height < 128) {
-        log_log(LOG_WARNING, "screen_height = 0, setting to 128", NULL);
+        log_log(LOG_WARNING, "screen_height < 128, setting to 128", NULL);
         main_config.screen_height = 128;
     }
     if (main_config.screen_width < 128) {
-        log_log(LOG_WARNING, "screen_width = 0, setting to 128", NULL);
+        log_log(LOG_WARNING, "screen_width < 128, setting to 128", NULL);
         main_config.screen_width = 128;
     }
     if (main_config.shader_chars_max == 0) {
@@ -101,6 +115,20 @@ void config_read(char * name)
         log_log(LOG_WARNING, "sectors_max = 0, setting to 128", NULL);
         main_config.sectors_max = 128;
     }
-
-    fclose(file);
+    if (main_config.texsize_max == 0) {
+        log_log(LOG_WARNING, "texsize_max = 0, setting to 1024", NULL);
+        main_config.texsize_max = 1024;
+    }
+    if (main_config.buf_prog == 0) {
+        log_log(LOG_WARNING, "buf_prog = 0, setting to 32", NULL);
+        main_config.buf_prog = 32;
+    }
+    if (main_config.buf_tex == 0) {
+        log_log(LOG_WARNING, "buf_tex = 0, setting to 512", NULL);
+        main_config.buf_tex = 512;
+    }
+    if (main_config.buf_vbo == 0) {
+        log_log(LOG_WARNING, "buf_vbo = 0, setting to 512", NULL);
+        main_config.buf_vbo = 512;
+    }
 }

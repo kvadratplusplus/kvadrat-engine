@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include <defines.h>
+#include <buffers.h>
 #include <memory_man.h>
 #include <file_man.h>
 #include <log_man.h>
@@ -19,22 +20,16 @@ extern Model * models;
 
 void scene_load_scene(char * scene_name)
 {
-    static uint8_t first_time = 1;
-    static float * vertex_buffer;
-    if (first_time) {
-        first_time = 0;
-        allocate_mem((void**)&vertex_buffer, sizeof(float), main_config.vertices_max * VERTICES_ATTRIBS);
-    }
     FILE * scene_file = NULL;
-    if(!open_file(&scene_file, scene_name, "r")) {
-        log_log(LOG_ERROR, "Scene file \"%s\" does not exist", scene_name);
-        exit(EXIT_FAILURE);
-    }
     char word[64] = {0};
     size_t current_light = 0;
     size_t current_sector = 0;
     size_t current_model = 0;
 
+    if(!open_file(&scene_file, scene_name, "r")) {
+        log_log(LOG_ERROR, "Scene file \"%s\" does not exist", scene_name);
+        exit(EXIT_FAILURE);
+    }
     while (fscanf(scene_file, "%63s", word) != EOF) {
         if (strcmp(word, "dir_light") == 0) {
             fscanf(
@@ -79,7 +74,6 @@ void scene_load_scene(char * scene_name)
                 continue;
             }
             fscanf(scene_file, "%f %f", &layout.bottom, &layout.top);
-
             for (size_t i = 0; i < 4; i++)
                 fscanf(scene_file, "%f", &layout.connection_top[i]);
 
@@ -109,29 +103,31 @@ void scene_load_scene(char * scene_name)
 
             current_sector++;
         } else if (strcmp(word, "model") == 0) {
+            char vertex_shader_name[128] = {0};
+            char fragment_shader_name[128] = {0};
+            char model_name[128] = {0};
+            char texture_name[128] = {0};
+            float x;
+            float y;
+            float z;
+
             if (current_model > main_config.models_max - 1) {
                 log_log(LOG_WARNING, "Scene \"%s\" has too many models\n", scene_name);
                 continue;
             }
-            char vertex_shader_name[64] = {0};
-            char fragment_shader_name[64] = {0};
-            char model_name[64] = {0};
-            char texture_name[64] = {0};
-            float x, y, z;
-
             fscanf(
                 scene_file,
-                "%63s %63s %63s %63s %f %f %f",
+                "%127s %127s %127s %127s %f %f %f",
                 model_name,
                 vertex_shader_name,
                 fragment_shader_name,
                 texture_name,
                 &x, &y, &z
             );
-            load_model(model_name, vertex_buffer, &models[current_model]);
-            glf_load_buffers(&models[current_model].vao, &models[current_model].vbo, models[current_model].vertex_count, vertex_buffer);
-            models[current_model].shader_program = glf_load_shader_program(vertex_shader_name, fragment_shader_name);
-            models[current_model].texture = glf_load_texture(texture_name);
+            models[current_model].vbo = bufs_model(model_name, &models[current_model].vertex_count,
+                &models[current_model].vao);
+            models[current_model].texture = bufs_tex(texture_name);
+            models[current_model].shader_program = bufs_prog(vertex_shader_name, fragment_shader_name);
             models[current_model].model_matrix = kmat_translate(&(kvec3){.x = x, .y = y, .z = z});
             models[current_model].is_active = 1;
 
@@ -140,7 +136,6 @@ void scene_load_scene(char * scene_name)
             log_log(LOG_WARNING, "Unknown object type \"%s\" in scene file \"%s\"", word, scene_name);
         }
     }
-
     if (current_light < main_config.shader_lights_count)
         for (size_t i = 0; i < main_config.shader_lights_count; i++)
             lights[i].is_active = 1;

@@ -93,19 +93,9 @@ int main(int argc, char * argv[])
         fprintf(stderr, "Error: File \"%s\" bits/pixel != 24\n", argv[1]);
         exit(EXIT_FAILURE);
     }
-    /*
-    fseek(input, head.offset + info.height * (info.width - 1), SEEK_SET);
 
-    for (uint32_t i = 0; i < info.height - 1; i++) {
-        for (uint32_t j = 0; j < info.width - 1; j++) {
-            uint8_t data[3] = {0};
-            fread(data, 1, 3, input);
-            fwrite(data, 1, 3, output);
-            fseek(input, 1, SEEK_CUR);
-        }
-        fseek(input, head.offset + info.height * (info.width - 2 - i), SEEK_SET);
-    }
-    */
+    fwrite(&info.width, 4, 1, output);
+    fwrite(&info.height, 4, 1, output);
 
     fseek(input, head.offset, SEEK_SET);
     for (uint32_t i = 0; i < info.width; i++) {
@@ -118,6 +108,5 @@ int main(int argc, char * argv[])
             fwrite(rgb, 1, 3, output);
         }
     }
-
     return 0;
 }
