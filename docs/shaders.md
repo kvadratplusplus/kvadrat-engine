@@ -80,5 +80,6 @@ To increase the number of lights, do the following:
 1. Go to `shaders/def.frag` and change `#define LIGHTS_COUNT 4` to the desired number of lights per object.
 2. Go to `config.cfg` and change `shader_lights_count` from `4` to the desired number of lights per object.
 
-See 'docs/config.md`.
+See `docs/config.md`.
+
 
