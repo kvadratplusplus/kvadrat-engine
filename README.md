@@ -1,3 +1,4 @@
+The official repository is now on Gitlab (https://gitlab.com/kvdrt/kvadrat-engine) and is under MIT license instead of GNU GPL
 # Engine
 
 <p align="center">
@@ -65,3 +66,4 @@ Single-file public domain (or MIT licensed) libraries for C/C++.\
 
 Youtube channel: <https://www.youtube.com/@kraskvad>\
 Telegram channel: <https://t.me/krasnyykvadratdev>
+
