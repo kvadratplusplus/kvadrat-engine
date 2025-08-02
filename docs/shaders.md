@@ -1,25 +1,30 @@
 # Shaders
 
+> **!Warning!**\
+> All shader files must be in LF format, not CRLF!
+
 There are 2 types of shaders - vertex and fragment.\
 Vertex shaders calculates vertex positions on the screen, `.vert` files.\
-Fragment shaders calculates pixel color on the screen, `.frag` files.
+Fragment shaders calculates pixel color on the screen, `.frag` files.\
+A bundle of `fragment` and `vertext` shaders is called a `shader program`.
 
 All shaders uses `GLSL v330 core`.
 
 ## Missing shader
 
-If a scene file contains a model object or a sector object for which a vertex or fragment shader file is missing (see `docs/scene.md`), the engine will print a warning and load `shaders/missing.vert` instead of the vertex shader or `shaders/missing.frag` instead of the fragment shader.
-If `shaders/missing.frag` or `shaders/missing.vert` are missing, the engine will print an error message and exit.
-
-Engine loads and compiles `shaders/missing.vert` and `shaders/missing.frag` shaders at start.
+Engine loads and compiles `shaders/missing.vert` and `shaders/missing.frag` shaders at start.\
+If `shaders/missing.frag` or `shaders/missing.vert` are missing, the engine will print an error message and exit.\
+If a scene file contains a model object or a sector object for which a vertex or fragment shader file is missing (see `docs/scene.md`),
+the engine will print a warning and load missing shader program instead of normal shaders.
 
 `shaders/missing.vert` and `shaders/missing.frag` are very hard to miss.
-You can always tell which shader is missing: vertex or fragment (or texture is missing, don't mess up).
+>**!Warning!**\
+>Missing shaders are now replaced with the missing shader program, rather than the program from the missing and normal shader.
 
 >![Missing shaders](./img/shd1.png)
-A regular cube on the right.\
-A cube with a missing fragment shader in the middle. It's completely pink.\
-A cube with a missing vertex shader on the left. It shakes a lot if you fly around it and has no lighting.
+>A regular cube on the right.\
+>A cube with a missing fragment shader in the middle. It's completely pink.\
+>A cube with a missing vertex shader on the left. It shakes a lot if you fly around it and has no lighting.
 
 ## Default shaders
 
@@ -76,3 +81,4 @@ To increase the number of lights, do the following:
 2. Go to `config.cfg` and change `shader_lights_count` from `4` to the desired number of lights per object.
 
 See 'docs/config.md`.
+
