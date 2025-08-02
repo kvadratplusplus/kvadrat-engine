@@ -49,7 +49,6 @@ void sector_draw(Sector * sector)
 
 void sector_create(SectorLayout * layout, Sector * sector)
 {
-    float vertices[triangles * 3 * VERTICES_ATTRIBS];
     size_t triangles = 4;
     float center_x = 0;
     float center_z = 0;
@@ -70,6 +69,7 @@ void sector_create(SectorLayout * layout, Sector * sector)
             continue;
         }
     }
+    float vertices[triangles * 3 * VERTICES_ATTRIBS];
     for (size_t i = 0; i < 4; i++) {
         center_x += layout->points[i].x;
         center_z += layout->points[i].y;
