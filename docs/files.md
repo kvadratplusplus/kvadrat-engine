@@ -14,7 +14,7 @@ folder
 | |-missing.kmdl
 | |-obj2kmdl.exe
 |-textures/
-| |-missing.png
+| |-missing.ktf
 |-shaders/
 | |-missing.vert
 | |-missing.frag
@@ -55,3 +55,4 @@ See `docs/shaders.md`.
 ## scenes/
 
 See `docs/scene.md`.
+
